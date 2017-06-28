@@ -11,3 +11,6 @@ dist/styles.css.map
 dist/
 .env
 .tmp
+.idea/
+assets/
+css/
