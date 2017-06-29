@@ -27,7 +27,8 @@
 // connector (T)? TODO : test all cases (review code) - for instance action depending on condition
 // TODO : abstract the tree traversal for the build states part TODO : externalize action with
 // possibility to wait for values or move on TODO : DSL TODO : write program which takes a
-// transition specifications and draw a nice graph out of it with yed or else TODO : think about the concurrent states (AND states)
+// transition specifications and draw a nice graph out of it with yed or else TODO : think about
+// the concurrent states (AND states)
 
 
 // CONTRACT : no transition from the history state (history state is only a target state)
@@ -42,12 +43,14 @@
 // guard that if we remain in the same state for X steps, transition automatically (to error or
 // else)
 
-import {merge} from "ramda"
+import { merge, clone } from "ramda"
 
 // CONSTANTS
 const INITIAL_STATE_NAME = 'nok';
 const STATE_PROTOTYPE_NAME = 'State'; // !!must be the function name for the constructor State,
                                       // i.e. State
+const NO_MODEL_UPDATE = null;
+const NO_OUTPUT = null;
 
 function make_action_DSL(action_list) {
   // action_list is an array whose entries are actions (functions)
@@ -113,9 +116,9 @@ function get_fn_name(fn) {
  * @param states
  * @returns {{hash_states: {}, is_group_state: {}}}
  */
-function build_nested_state_structure(states, Rx) {
+function build_nested_state_structure(states, event_emitter_factory) {
   const root_name = 'State';
-  const last_seen_state_event_emitter = new Rx.Subject();
+  const last_seen_state_event_emitter = event_emitter_factory();
   let hash_states = {};
   let last_seen_state_listener_disposables = [];
   let is_group_state = {};
@@ -128,8 +131,8 @@ function build_nested_state_structure(states, Rx) {
   function add_last_seen_state_listener(child_name, parent_name) {
     last_seen_state_listener_disposables.push(
       last_seen_state_event_emitter.subscribe(function (x) {
-        var event_emitter_name = x.event_emitter_name
-        var last_seen_state_name = x.last_seen_state_name;
+        const event_emitter_name = x.event_emitter_name
+        const last_seen_state_name = x.last_seen_state_name;
         if (event_emitter_name === child_name) {
           console.log(['last seen state set to', wrap(last_seen_state_name), 'in', wrap(parent_name)].join(" "));
           hash_states[parent_name].history.last_seen_state = last_seen_state_name;
@@ -139,8 +142,8 @@ function build_nested_state_structure(states, Rx) {
 
   function build_state_reducer(states, curr_constructor) {
     Object.keys(states).forEach(function (state_name) {
-      var state_config = states[state_name];
-      var curr_constructor_new;
+      const state_config = states[state_name];
+      let curr_constructor_new;
 
       // The hierarchical state mechanism is implemented by reusing the standard Javascript
       // prototypal inheritance If A < B < C, then C has a B as prototype which has an A as
@@ -247,25 +250,26 @@ function build_state_enum(states) {
  *   - action : function (model, event_data) : model_prime
  *   - from : state from which the described transition operates
  *   - to : target state for the described transition
- * @param hash_states_struct
- * @param events
- * @param transitions
- * @param model_initial
- * @returns {{send_event: send_event, start: start}}
+ * @param fsmDef
+ * @param settings
+ * @returns {{yield : Function, start: Function}}
  */
 // TODO : pass the subject factory in settings
 // TODO : replace control_states by states
-function create_state_machine(control_states, events, transitions, model_initial, Rx) {
+function create_state_machine(fsmDef, settings) {
+  const { control_states, events, transitions, model_initial } = fsmDef;
+  const { event_emitter_factory } = settings;
+
+  // TODO
   let fsm;
-  const new_model_event_emitter = new Rx.BehaviorSubject(model_initial);
 
   // Create the nested hierarchical
-  const hash_states_struct = build_nested_state_structure(control_states, Rx);
+  const hash_states_struct = build_nested_state_structure(control_states, event_emitter_factory);
 
   // This will be the model object which will be updated by all actions and on which conditions
   // will be evaluated It is safely contained in a closure so it cannot be accessed in any way
   // outside the state machine
-  let model = {};
+  let model = clone(model_initial);
   const special_events = build_event_enum('auto', 'init');
   let is_init_state = {}; // {Object<state_name,boolean>}, allows to know whether a state has a
   // init transition defined
@@ -299,7 +303,7 @@ function create_state_machine(control_states, events, transitions, model_initial
 
     // ERROR CASE : state found in transition but cannot be found in the events passed as parameter
     // NOTE : this is probably all what we need the events variable for
-    if (event && !(event in events)) throw 'unknow event (' + event + ') found in state machine definition!'
+    if (event && !(event in events)) throw `unknown event ${event} found in state machine definition!`
     // CASE : automatic transitions : no events - likely a transient state with only conditions
     if (!event) {
       event = special_events.AUTO;
@@ -316,7 +320,7 @@ function create_state_machine(control_states, events, transitions, model_initial
     from_proto[event] = arr_predicate.reduce(function (acc, condition, index) {
       let action = condition.action || identity;
       console.log("Condition:", condition);
-      const condition_checking_fn = (function (condition) {
+      const condition_checking_fn = (function (condition, settings) {
         let condition_suffix = '';
         // We add the `current_state` because the current state might be different from the `from`
         // field here This is the case for instance when we are in a substate, but through
@@ -326,16 +330,21 @@ function create_state_machine(control_states, events, transitions, model_initial
           const predicate = condition.condition;
           condition_suffix = predicate ? '_checking_condition_' + index : '';
           const to = condition.to;
-          let model_prime// = model; // CASE : no actions to execute, the model does not change
+          let actionResult = {
+            model_update: NO_MODEL_UPDATE,
+            output: NO_OUTPUT
+          };
           // TODO : add settings parameter
-          if (!predicate || predicate(model_, event_data)) {
+          if (!predicate || predicate(model_, event_data, settings)) {
             // CASE : condition for transition is fulfilled so we can execute the actions...
             console.info("IN STATE ", from);
-            console.info("WITH model, event data BEING ", model_, event_data);
+            console.info("WITH model, event data, settings BEING ", model_, event_data, settings);
             console.info("CASE : "
               + (predicate ? "condition " + predicate.name + " for transition is fulfilled"
                 : "automatic transition"));
             if (action) {
+              // TODO : check the logic : I MUST have an action, if I have a transition
+              // TODO : or use default : no model update, no output (filtered down the road)
               // CASE : we do have some actions to execute
               console.info("THEN : we execute the action " + action.name);
               // TODO : add settings parameter, and rethink the fsm, events parameter
@@ -343,45 +352,47 @@ function create_state_machine(control_states, events, transitions, model_initial
               // out for other cloning somewhere here
               // TODO : remove events parameters, I was passing it because I wanted to have the
               // fsm emit events but I dont do that anymore. No need for fsm object either
-              model_prime = action(model_, event_data, fsm, events);
+              actionResult = action(model_, event_data, settings);
             }
 
             // Leave the current state
             leave_state(from, model_, hash_states);
 
             // ...and enter the next state (can be different from to if we have nesting state group)
-            const next_state = enter_next_state(to, model_prime, hash_states);
+            const next_state = enter_next_state(to, actionResult.model_update, hash_states);
 
             // Update the model after entering the next state
             // TODO : is it better to send the new model notification in between states or on
             // entering the next state?
-            model = update_model(model_, model_prime, from, next_state);
+            model = update_model(model_, actionResult.model_update, from, next_state);
             // Emit the new model event
-            new_model_event_emitter.onNext(model);
+            // new_model_event_emitter.onNext(model);
             console.info("RESULTING IN : ", model);
+            console.info("RESULTING IN OUTPUT : ", actionResult.output);
 
-            return true; // allows for chaining and stop chaining condition
+            return { stop: true, output: actionResult.output }; // allows for chaining and stop
+                                                                // chaining condition
           }
           else {
             // CASE : condition for transition is not fulfilled
             console.log("CASE : "
               + (predicate ? "condition " + predicate.name + " for transition NOT fulfilled..."
                 : "no predicate"));
-            return false;
+            return { stop: false, output: NO_OUTPUT };
           }
         };
         condition_checking_fn.displayName = from + condition_suffix;
         return condition_checking_fn;
-      })(condition);
+      })(condition, settings);
 
       return function arr_predicate_reduce_fn(model_, event_data, current_state) {
         const condition_checked = acc(model_, event_data, current_state);
-        return condition_checked
-          ? true
+        return condition_checked.stop
+          ? condition_checked
           : condition_checking_fn(model_, event_data, current_state);
       }
     }, function () {
-      return false
+      return { stop: false, output: NO_OUTPUT }
     });
   });
 
@@ -390,7 +401,7 @@ function create_state_machine(control_states, events, transitions, model_initial
     const event_name = keys(event_struct)[0];
     const event_data = event_struct[event_name];
 
-    process_event(hash_states_struct.hash_states, event_name, event_data, model);
+    return process_event(hash_states_struct.hash_states, event_name, event_data, model);
   }
 
   function process_event(hash_states, event, event_data, model) {
@@ -402,41 +413,36 @@ function create_state_machine(control_states, events, transitions, model_initial
       // CASE : There is a transition associated to that event
       log("found event handler!");
       console.info("WHEN EVENT ", event);
-      event_handler(model, event_data, current_state);
+      // TODO : adapt that : we want the output of the event_handler
+      const output = event_handler(model, event_data, current_state).output;
       // send the AUTO event to trigger transitions which are automatic
       // i.e. transitions without events
       // event_handler(model, special_events.AUTO);
-      process_automatic_events(hash_states, event_data);
-      return;
+      // TODO : make sure that returns something
+      // TODO : the logic here is that if there is no automatic events, return output
+
+      const current_state = hash_states[INITIAL_STATE_NAME].current_state_name;
+
+      // Two cases here:
+      // 1. Init handlers, when present on the current state, must be acted on immediately
+      // This allows for sequence of init events in various state levels
+      // For instance, L1: init -> L2:init -> L3:init -> L4: stateX
+      // In this case event_data will carry on the data passed on from the last event (else we loose
+      // the model?) 2. transitions with no events associated, only conditions (i.e. transient
+      // states) In this case, there is no need for event data
+      if (is_auto_state[current_state]) {
+        // CASE : transient state with no triggering event, just conditions
+        const auto_event = is_init_state[current_state] ? special_events.INIT : special_events.AUTO;
+        return send_event(auto_event, event_data);
+      }
+      else return output
     }
     else {
       // CASE : There is no transition associated to that event from that state
-      const error_msg = 'There is no transition associated to that event!';
-      model = update_model_with_error(model, event, event_data, error_msg);
-      // Emit the new model event
-      // TODO : we dont emit model anymore...
-      new_model_event_emitter.onNext(model);
+      console.error(`There is no transition associated to that event!`);
 
-      console.error(error_msg);
-      return;
+      return NO_OUTPUT;
     }
-  }
-
-  function process_automatic_events(hash_states, previously_processed_event_data) {
-    const current_state = hash_states[INITIAL_STATE_NAME].current_state_name;
-    // Two cases here:
-    // 1. Init handlers, when present on the current state, must be acted on immediately
-    // This allows for sequence of init events in various state levels
-    // For instance, L1: init -> L2:init -> L3:init -> L4: stateX
-    // In this case event_data will carry on the data passed on from the last event (else we loose
-    // the model?) 2. transitions with no events associated, only conditions (i.e. transient
-    // states) In this case, there is no need for event data
-    if (is_auto_state[current_state]) {
-      // CASE : transient state with no triggering event, just conditions
-      const auto_event = is_init_state[current_state] ? special_events.INIT : special_events.AUTO;
-      send_event(auto_event, previously_processed_event_data);
-    }
-    return;
   }
 
   function leave_state(from, model, hash_states) {
@@ -494,7 +500,7 @@ function create_state_machine(control_states, events, transitions, model_initial
   }
 
   function start() {
-    return send_event(events.INIT, model_initial);
+    return send_event({ [events.INIT]: model_initial });
   }
 
   function update_model(model, model_update) {
@@ -503,10 +509,10 @@ function create_state_machine(control_states, events, transitions, model_initial
     return merge(model, model_update);
   }
 
-  return fsm = {
+  return {
     yield: send_event,
     start: start,
-    new_model_event_emitter: new_model_event_emitter
+//    new_model_event_emitter: new_model_event_emitter
   }
 }
 
