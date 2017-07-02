@@ -174,6 +174,7 @@ function assertContract(contractFn, contractArgs, errorMessage) {
   const isPredicateSatisfied = isBoolean(boolOrError) && boolOrError;
 
   if (!isPredicateSatisfied) {
+    void 0;
     throw `assertContract: fails contract ${contractFn.name}\n${errorMessage}\n ${boolOrError}`
   }
   return true

@@ -43,14 +43,42 @@
 // guard that if we remain in the same state for X steps, transition automatically (to error or
 // else)
 
-import { merge, clone } from "ramda"
+import { always, clone, keys, merge } from "ramda"
+import * as jsonpatch from "fast-json-patch"
+import { assertContract } from "./utils"
+import { isArrayUpdateOperations } from "./contracts"
+import {CONTRACT_MODEL_UPDATE_FN_RETURN_VALUE} from "./properties"
 
 // CONSTANTS
-const INITIAL_STATE_NAME = 'nok';
+export const INITIAL_STATE_NAME = 'nok';
+export const INIT_EVENT = 'init';
+export const AUTO_EVENT = 'auto';
 const STATE_PROTOTYPE_NAME = 'State'; // !!must be the function name for the constructor State,
                                       // i.e. State
-const NO_MODEL_UPDATE = null;
-const NO_OUTPUT = null;
+export const NO_MODEL_UPDATE = [];
+export const NO_OUTPUT = null;
+export const default_action_result = {
+  model_update: NO_MODEL_UPDATE,
+  output: NO_OUTPUT
+};
+
+function wrap(str) {
+  return ['-', str, '-'].join("");
+}
+
+/**
+ *
+ * @param {FSM_Model} model
+ * @param {UpdateOperation[]} modelUpdateOperations
+ * @returns {FSM_Model}
+ */
+function applyUpdateOperations(/*OUT*/model, modelUpdateOperations) {
+  assertContract(isArrayUpdateOperations, [modelUpdateOperations],
+    `applyUpdateOperations : ${CONTRACT_MODEL_UPDATE_FN_RETURN_VALUE}`);
+
+  jsonpatch.apply(model, modelUpdateOperations);
+  return model;
+}
 
 function make_action_DSL(action_list) {
   // action_list is an array whose entries are actions (functions)
@@ -58,7 +86,7 @@ function make_action_DSL(action_list) {
   // [function my_name(){}] -> action_enum : {my_name: 'my_name'}
   // [function my_name(){}] -> action_hash : {my_name: 0}
   return action_list.reduce(function build_action_enum(action_struct, action_fn, index) {
-    var action_name = action_fn.name;
+    const action_name = action_fn.name;
     action_struct.action_enum[action_name] = action_name;
     action_struct.action_hash[action_name] = action_fn;
     return action_struct;
@@ -77,9 +105,9 @@ function make_action_DSL(action_list) {
 function build_event_enum(array_identifiers) {
   array_identifiers = array_identifiers.reduce ? array_identifiers : Array.prototype.slice.call(arguments);
   // NOTE : That will overwrite any other event called init...
-  array_identifiers.push('init');
+  array_identifiers.push(INIT_EVENT);
   return array_identifiers.reduce(function (acc, identifier) {
-    acc[identifier.toUpperCase()] = identifier.toUpperCase();
+    acc[identifier] = identifier;
     return acc;
   }, {})
 }
@@ -91,7 +119,7 @@ function build_event_enum(array_identifiers) {
  * @returns {String}
  */
 function get_fn_name(fn) {
-  var tokens =
+  const tokens =
     /^[\s\r\n]*function[\s\r\n]*([^\(\s\r\n]*?)[\s\r\n]*\([^\)\s\r\n]*\)[\s\r\n]*\{((?:[^}]*\}?)+)\}\s*$/
       .exec(fn.toString());
   return tokens[1];
@@ -141,7 +169,7 @@ function build_nested_state_structure(states, event_emitter_factory) {
   }
 
   function build_state_reducer(states, curr_constructor) {
-    Object.keys(states).forEach(function (state_name) {
+    keys(states).forEach(function (state_name) {
       const state_config = states[state_name];
       let curr_constructor_new;
 
@@ -151,7 +179,7 @@ function build_nested_state_structure(states, event_emitter_factory) {
       // visible in B and C
       hash_states[state_name] = new curr_constructor();
       hash_states[state_name].name = state_name;
-      var parent_name = hash_states[state_name].parent_name = get_fn_name(curr_constructor);
+      const parent_name = hash_states[state_name].parent_name = get_fn_name(curr_constructor);
       hash_states[state_name].root_name = root_name;
       hash_states[state_name].history = { last_seen_state: null };
       hash_states[state_name].active = false;
@@ -172,7 +200,7 @@ function build_nested_state_structure(states, event_emitter_factory) {
       if (typeof(state_config) === 'object') {
         is_group_state[state_name] = true;
         eval(['curr_constructor_new = function', state_name, '(){}'].join(" "));
-        curr_constructor_new.name = state_name;
+        curr_constructor_new.displayName = state_name;
         curr_constructor_new.prototype = hash_states[state_name];
         build_state_reducer(state_config, curr_constructor_new);
       }
@@ -212,19 +240,19 @@ function build_nested_state_structure(states, event_emitter_factory) {
  * @returns {state_name: {String}, {history: {Function}}}
  */
 function build_state_enum(states) {
-  var states_enum = { history: {} };
+  let states_enum = { history: {} };
 
   // Set initial state
   states_enum.NOK = INITIAL_STATE_NAME;
 
   function build_state_reducer(states) {
-    Object.keys(states).forEach(function (state_name) {
-      var state_config = states[state_name];
+    keys(states).forEach(function (state_name) {
+      const state_config = states[state_name];
 
       states_enum[state_name] = state_name;
       // All history states will be signalled through the history property, and a function instead
       // of a value The function name is the state name whose history is referred to
-      var state_name_history_fn;
+      let state_name_history_fn;
       eval(['state_name_history_fn = function', state_name, '(){}'].join(" "));
       states_enum.history[state_name] = state_name_history_fn;
 
@@ -260,17 +288,16 @@ function create_state_machine(fsmDef, settings) {
   const { control_states, events, transitions, model_initial } = fsmDef;
   const { event_emitter_factory } = settings;
 
-  // TODO
-  let fsm;
+  const _control_states = build_state_enum(control_states);
+  const _events = build_event_enum(events);
 
   // Create the nested hierarchical
-  const hash_states_struct = build_nested_state_structure(control_states, event_emitter_factory);
+  const hash_states_struct = build_nested_state_structure(_control_states, event_emitter_factory);
 
   // This will be the model object which will be updated by all actions and on which conditions
   // will be evaluated It is safely contained in a closure so it cannot be accessed in any way
   // outside the state machine
   let model = clone(model_initial);
-  const special_events = build_event_enum('auto', 'init');
   let is_init_state = {}; // {Object<state_name,boolean>}, allows to know whether a state has a
   // init transition defined
   let is_auto_state = {}; // {Object<state_name,boolean>}, allows to know whether a state has an
@@ -295,7 +322,7 @@ function create_state_machine(fsmDef, settings) {
 
     // CASE : transition has a init event
     // NOTE : there should ever only be one, but we don't enforce it for now
-    if (event === special_events.INIT) {
+    if (event === INIT_EVENT) {
       is_init_state[from] = true;
     }
 
@@ -303,10 +330,10 @@ function create_state_machine(fsmDef, settings) {
 
     // ERROR CASE : state found in transition but cannot be found in the events passed as parameter
     // NOTE : this is probably all what we need the events variable for
-    if (event && !(event in events)) throw `unknown event ${event} found in state machine definition!`
+    if (event && !(event in _events)) throw `unknown event ${event} found in state machine definition!`
     // CASE : automatic transitions : no events - likely a transient state with only conditions
     if (!event) {
-      event = special_events.AUTO;
+      event = AUTO_EVENT;
       is_auto_state[from] = true;
     }
     // CASE : automatic transitions : init event automatically fired upon entering a grouping state
@@ -318,7 +345,7 @@ function create_state_machine(fsmDef, settings) {
     console.log("Predicates:", arr_predicate);
 
     from_proto[event] = arr_predicate.reduce(function (acc, condition, index) {
-      let action = condition.action || identity;
+      let action = condition.action || always(default_action_result);
       console.log("Condition:", condition);
       const condition_checking_fn = (function (condition, settings) {
         let condition_suffix = '';
@@ -330,11 +357,8 @@ function create_state_machine(fsmDef, settings) {
           const predicate = condition.condition;
           condition_suffix = predicate ? '_checking_condition_' + index : '';
           const to = condition.to;
-          let actionResult = {
-            model_update: NO_MODEL_UPDATE,
-            output: NO_OUTPUT
-          };
-          // TODO : add settings parameter
+          let actionResult;
+
           if (!predicate || predicate(model_, event_data, settings)) {
             // CASE : condition for transition is fulfilled so we can execute the actions...
             console.info("IN STATE ", from);
@@ -343,32 +367,26 @@ function create_state_machine(fsmDef, settings) {
               + (predicate ? "condition " + predicate.name + " for transition is fulfilled"
                 : "automatic transition"));
             if (action) {
-              // TODO : check the logic : I MUST have an action, if I have a transition
-              // TODO : or use default : no model update, no output (filtered down the road)
               // CASE : we do have some actions to execute
               console.info("THEN : we execute the action " + action.name);
-              // TODO : add settings parameter, and rethink the fsm, events parameter
-              // TODO : model_prime should be json patch - but do that last really, and check
-              // out for other cloning somewhere here
-              // TODO : remove events parameters, I was passing it because I wanted to have the
-              // fsm emit events but I dont do that anymore. No need for fsm object either
+              // NOTE : in a further extension, passing the fsm and the events object could help
+              // in implementing asynchronous fsm
               actionResult = action(model_, event_data, settings);
             }
 
             // Leave the current state
             leave_state(from, model_, hash_states);
 
-            // ...and enter the next state (can be different from to if we have nesting state group)
-            const next_state = enter_next_state(to, actionResult.model_update, hash_states);
-
-            // Update the model after entering the next state
-            // TODO : is it better to send the new model notification in between states or on
-            // entering the next state?
-            model = update_model(model_, actionResult.model_update, from, next_state);
+            // Update the model before entering the next state
+            model = update_model(model_, actionResult.model_update);
             // Emit the new model event
             // new_model_event_emitter.onNext(model);
             console.info("RESULTING IN : ", model);
             console.info("RESULTING IN OUTPUT : ", actionResult.output);
+
+            // ...and enter the next state (can be different from to if we have nesting state group)
+            const next_state = enter_next_state(to, actionResult.model_update, hash_states);
+            console.info("ENTERING NEXT STATE : ", next_state);
 
             return { stop: true, output: actionResult.output }; // allows for chaining and stop
                                                                 // chaining condition
@@ -411,9 +429,10 @@ function create_state_machine(fsmDef, settings) {
 
     if (event_handler) {
       // CASE : There is a transition associated to that event
-      log("found event handler!");
+      console.log("found event handler!");
       console.info("WHEN EVENT ", event);
       // TODO : adapt that : we want the output of the event_handler
+      /* OUT : this event handler modifies the model and possibly other data structures */
       const output = event_handler(model, event_data, current_state).output;
       // send the AUTO event to trigger transitions which are automatic
       // i.e. transitions without events
@@ -421,6 +440,7 @@ function create_state_machine(fsmDef, settings) {
       // TODO : make sure that returns something
       // TODO : the logic here is that if there is no automatic events, return output
 
+      // we read it anew as the execution of the event handler may have changed it
       const current_state = hash_states[INITIAL_STATE_NAME].current_state_name;
 
       // Two cases here:
@@ -432,8 +452,8 @@ function create_state_machine(fsmDef, settings) {
       // states) In this case, there is no need for event data
       if (is_auto_state[current_state]) {
         // CASE : transient state with no triggering event, just conditions
-        const auto_event = is_init_state[current_state] ? special_events.INIT : special_events.AUTO;
-        return send_event(auto_event, event_data);
+        const auto_event = is_init_state[current_state] ? INIT_EVENT : AUTO_EVENT;
+        return send_event({ [AUTO_EVENT]: event_data });
       }
       else return output
     }
@@ -500,13 +520,16 @@ function create_state_machine(fsmDef, settings) {
   }
 
   function start() {
-    return send_event({ [events.INIT]: model_initial });
+    return send_event({ [INIT_EVENT]: model_initial });
   }
 
-  function update_model(model, model_update) {
-    // TODO use ramda merge, this uses lodash...
-    // TODO : so take advantage to move to json patch
-    return merge(model, model_update);
+  /**
+   * OUT
+   * @param model
+   * @param modelUpdateOperations
+   */
+  function update_model(model, modelUpdateOperations) {
+    return applyUpdateOperations(model, modelUpdateOperations);
   }
 
   return {
