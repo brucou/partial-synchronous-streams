@@ -1,1 +1,1 @@
-import './partial_synchronous_streams.specs'
+import './synchronous_streams.specs'

@@ -282,8 +282,8 @@ function build_state_enum(states) {
  * @param settings
  * @returns {{yield : Function, start: Function}}
  */
-// TODO : pass the subject factory in settings
 // TODO : replace control_states by states
+// TODO : add NO_OUTPUT in settings
 function create_state_machine(fsmDef, settings) {
   const { control_states, events, transitions, model_initial } = fsmDef;
   const { event_emitter_factory } = settings;
