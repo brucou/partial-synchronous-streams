@@ -43,11 +43,12 @@
 // guard that if we remain in the same state for X steps, transition automatically (to error or
 // else)
 
-import { always, clone, keys, merge } from "ramda"
+import * as Rx from "rx"
+import { always, clone, keys } from "ramda"
 import * as jsonpatch from "fast-json-patch"
 import { assertContract } from "./utils"
 import { isArrayUpdateOperations } from "./contracts"
-import {CONTRACT_MODEL_UPDATE_FN_RETURN_VALUE} from "./properties"
+import { CONTRACT_MODEL_UPDATE_FN_RETURN_VALUE } from "./properties"
 
 // CONSTANTS
 export const INITIAL_STATE_NAME = 'nok';
@@ -61,6 +62,7 @@ export const default_action_result = {
   model_update: NO_MODEL_UPDATE,
   output: NO_OUTPUT
 };
+export function default_emitter_factory() {return new Rx.Subject()};
 
 function wrap(str) {
   return ['-', str, '-'].join("");
@@ -253,7 +255,9 @@ function build_state_enum(states) {
       // All history states will be signalled through the history property, and a function instead
       // of a value The function name is the state name whose history is referred to
       let state_name_history_fn;
-      eval(['state_name_history_fn = function', state_name, '(){}'].join(" "));
+      // NOTE : we add an underscore to avoid collision with javascript reserved word (new,
+      // each, ...)
+      eval(['state_name_history_fn = function', '_' + state_name, '(){}'].join(" "));
       states_enum.history[state_name] = state_name_history_fn;
 
       if (typeof(state_config) === 'object') {
@@ -285,7 +289,9 @@ function build_state_enum(states) {
 // TODO : add NO_OUTPUT in settings
 function create_state_machine(fsmDef, settings) {
   const { control_states, events, transitions, model_initial } = fsmDef;
-  const { event_emitter_factory } = settings;
+  const event_emitter_factory = ('event_emitter_factory' in settings)
+    ? settings.event_emitter_factory
+    : default_emitter_factory;
 
   const _control_states = build_state_enum(control_states);
   const _events = build_event_enum(events);
@@ -408,7 +414,7 @@ function create_state_machine(fsmDef, settings) {
           ? condition_checked
           : condition_checking_fn(model_, event_data, current_state);
       }
-    }, function () {
+    }, function dummy() {
       return { stop: false, output: NO_OUTPUT }
     });
   });
