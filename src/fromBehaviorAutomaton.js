@@ -72,10 +72,7 @@ function repeatError(model, eventData, settings) {
 
 function setSamePullOutput (model, eventData, settings) {
   return {
-    model_update: toJsonPatch('')({
-      // This is for tracing purposes only, we don't need it otherwise
-      controlState: SAME,
-    }),
+    model_update: [],
     output: {
       controlState : SAME,
       output : model.value
@@ -85,10 +82,7 @@ function setSamePullOutput (model, eventData, settings) {
 
 function setNewPullOutput (model, eventData, settings) {
   return {
-    model_update: toJsonPatch('')({
-      // This is for tracing purposes only, we don't need it otherwise
-      controlState: SAME,
-    }),
+    model_update: [],
     output: {
       controlState : NEW,
       output : model.value
@@ -99,11 +93,10 @@ function setNewPullOutput (model, eventData, settings) {
 function updateWithError (model, eventData, settings) {
   return {
     model_update: toJsonPatch('')({
-      controlState: ERROR,
       value : null,
       error: eventData
     }),
-    output: NO_OUTPUT
+    output: []
   }
 }
 

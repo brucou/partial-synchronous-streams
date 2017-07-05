@@ -66,6 +66,8 @@ import { DONE_EVENT, ERROR_EVENT, NEW_EVENT, PULL_EVENT, STATES } from "./proper
 
 const { INIT, NEW, SAME, ERROR, DONE, TEMP } = STATES;
 
+export const ERROR_FROM_GENERATING_BEHAVIOR = `Error occured while observing on behaviour stream! `;
+
 const pullMessage = { [PULL_EVENT]: null };
 
 function makePullMessage() {
@@ -103,19 +105,21 @@ export function fromFn(fn, settings) {
 
 // NOTE: this is the same code for all fromXXX, just the automaton changing
 export function fromBehavior(behavior, settings) {
-  // TODO
-  let _value;
-  const automaton = create_state_machine(syncDataflowCreateFromBehaviorAutomaton, settings)
+  const automaton = create_state_machine(syncDataflowCreateFromBehaviorAutomaton, {...settings});
+  let _value = automaton.start();
 
   behavior.subscribe(
     (x) => _value = automaton.yield(makeNewMessage(x)),
-    (err) => _value = automaton.yield(makeErrMessage(err)),
+    (err) => _value = automaton.yield(makeErrMessage('fromBehavior > ' + ERROR_FROM_GENERATING_BEHAVIOR + ' : ' + err)),
     () => _value = automaton.yield(makeDoneMessage()),
   );
 
   return {
     get: function () {
-      return { controlState, value } = _value
+      return {
+        controlState: _value.controlState,
+        output: _value.output
+      }
     },
     pull: function () {
       _value = automaton.yield(pullMessage)
