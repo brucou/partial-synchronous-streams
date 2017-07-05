@@ -105,12 +105,12 @@ export function fromFn(fn, settings) {
 export function fromBehavior(behavior, settings) {
   // TODO
   let _value;
-  const automata = create_state_machine(syncDataflowCreateFromBehaviorAutomaton, settings)
+  const automaton = create_state_machine(syncDataflowCreateFromBehaviorAutomaton, settings)
 
   behavior.subscribe(
-    (x) => _value = automata.yield(makeNewMessage(x)),
-    (err) => _value = automata.yield(makeErrMessage(err)),
-    () => _value = automata.yield(makeDoneMessage()),
+    (x) => _value = automaton.yield(makeNewMessage(x)),
+    (err) => _value = automaton.yield(makeErrMessage(err)),
+    () => _value = automaton.yield(makeDoneMessage()),
   );
 
   return {
@@ -118,7 +118,7 @@ export function fromBehavior(behavior, settings) {
       return { controlState, value } = _value
     },
     pull: function () {
-      _value = automata.yield(pullMessage)
+      _value = automaton.yield(pullMessage)
     }
   }
 }

@@ -1,8 +1,7 @@
-
-import { create_state_machine, INIT_EVENT, INITIAL_STATE_NAME, NO_OUTPUT } from "./synchronous_fsm"
+import { INIT_EVENT, INITIAL_STATE_NAME, NO_OUTPUT } from "./synchronous_fsm"
 import { equals, tryCatch } from "ramda"
 import { toJsonPatch } from "./utils"
-import {STATES, PULL_EVENT, NEW_EVENT, ERROR_EVENT, DONE_EVENT} from './properties'
+import { DONE_EVENT, ERROR_EVENT, NEW_EVENT, PULL_EVENT, STATES } from "./properties"
 
 export const ERROR_WHEN_EXECUTING_ITERABLE_GENERATING_FUNCTION = `Encountered an error while executing generating function.`;
 
@@ -72,7 +71,7 @@ function repeatError(model, eventData, settings) {
 function updateModelWithSame(model, eventData, settings) {
   return {
     model_update: toJsonPatch('')({
-      controlState: NEW,
+      controlState: SAME,
       cache: model.value,
       // no update for value, it was already updated in TEMP
       error: null
