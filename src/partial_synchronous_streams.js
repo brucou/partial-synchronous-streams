@@ -59,19 +59,18 @@
 
  */
 
-import { create_state_machine } from "./synchronous_fsm"
+import { create_state_machine, NO_OUTPUT } from "./synchronous_fsm"
 import { syncDataflowCreateFromFnAutomaton } from "./fromFnAutomaton"
 import { syncDataflowCreateFromBehaviorAutomaton } from "./fromBehaviorAutomaton"
 import { DONE_EVENT, ERROR_EVENT, NEW_EVENT, PULL_EVENT, STATES } from "./properties"
+import { equals } from "ramda"
 
 const { INIT, NEW, SAME, ERROR, DONE, TEMP } = STATES;
 
 export const ERROR_FROM_GENERATING_BEHAVIOR = `Error occured while observing on behaviour stream! `;
 
-const pullMessage = { [PULL_EVENT]: null };
-
 function makePullMessage() {
-  return pullMessage
+  return { [PULL_EVENT]: null }
 }
 
 function makeNewMessage(data) {
@@ -98,14 +97,14 @@ export function fromFn(fn, settings) {
       }
     },
     pull: function () {
-      _value = automaton.yield(pullMessage)
+      _value = automaton.yield(makePullMessage())
     }
   }
 }
 
 // NOTE: this is the same code for all fromXXX, just the automaton changing
 export function fromBehavior(behavior, settings) {
-  const automaton = create_state_machine(syncDataflowCreateFromBehaviorAutomaton, {...settings});
+  const automaton = create_state_machine(syncDataflowCreateFromBehaviorAutomaton, { ...settings });
   let _value = automaton.start();
 
   behavior.subscribe(
@@ -122,7 +121,7 @@ export function fromBehavior(behavior, settings) {
       }
     },
     pull: function () {
-      _value = automaton.yield(pullMessage)
+      _value = automaton.yield(makePullMessage())
     }
   }
 }
@@ -136,27 +135,29 @@ function map(sdf, fn) {
     },
     pull: function () {
       sdf.pull()
-      const { controlState, output } = sdf.get()
+      const { controlState, output } = sdf.get();
 
       // TODO : add case where output == NO_OUTPUT!! must be mapped to NO_OUTPUT
       // TODO : map should return also {controlState, output} !! so no good here (imagine two maps)
       // Note that map does not change the control state, just the output
       switch (controlState) {
-        case INIT : // TODO : should not have a INIT state, I pulled - so put it in contracts, and return
-          // error here
-          cachedValue = value;
+        case INIT :
+          // could happen for instance with fromFn, when one does a get before a pull (!! dont
+          // do that!!) In such pathologica case, we just silently output nothing
+          // TODO : put in doc
+          cachedValue = NO_OUTPUT;
           break;
         case NEW :
-          cachedValue = fn(value)
+          cachedValue = equals(output, NO_OUTPUT) ? NO_OUTPUT : fn(output);
           break;
         case SAME :
-          cachedValue = value
+          // Do nothing, fn(value) is already in cache
           break;
         case ERROR :
-          cachedValue = value
+          cachedValue = output
           break;
         case DONE :
-          cachedValue = value
+          cachedValue = output
           break;
       }
     }
@@ -167,3 +168,4 @@ function map(sdf, fn) {
 // as well
 // Note that this will go as settigns to the state machine cf. fromFn(.. setings)
 // done can be used at guard and action levels, no_output used outside of the fsm
+// TODO  : do combine. and then demo

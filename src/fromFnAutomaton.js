@@ -10,7 +10,7 @@ const { INIT, NEW, SAME, ERROR, DONE, TEMP } = STATES;
 const initialValue = {
   controlState: INIT,
   cache: null,
-  value: null,
+  value: NO_OUTPUT,
   error: null
 };
 
