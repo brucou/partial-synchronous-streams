@@ -1,6 +1,9 @@
 import * as QUnit from "qunitjs"
 import { fromFn } from "../src/partial_synchronous_streams"
 import { ERROR_WHEN_EXECUTING_ITERABLE_GENERATING_FUNCTION } from "../src/fromFnAutomaton"
+import { STATES } from "../src/properties"
+
+const { NEW, SAME, ERROR, DONE } = STATES;
 
 function makeCounterFn(init) {
   return function counterFn() {
@@ -147,8 +150,8 @@ QUnit.test("From fn = err ..", function exec_test(assert) {
 //   - {controlState : ERROR, output : NO_OUTPUT}
 // ...
 QUnit.test("From fn = x y y z err z z x", function exec_test(assert) {
-  const ERROR = `Some error occurred while executing the function!`;
-  const fn = makeEventuallyThrowingFn(0, ERROR);
+  const ERROR_MESSAGE = `Some error occurred while executing the function!`;
+  const fn = makeEventuallyThrowingFn(0, ERROR_MESSAGE);
   // No done settings
   const iterator = fromFn(fn);
 
@@ -160,25 +163,25 @@ QUnit.test("From fn = x y y z err z z x", function exec_test(assert) {
   }, []);
 
   assert.deepEqual(sequence, [
-    { "controlState": "new", "output": 0 },
-    { "controlState": "new", "output": 1 },
-    { "controlState": "same", "output": 1 },
-    { "controlState": "new", "output": 2 },
+    { "controlState": NEW, "output": 0 },
+    { "controlState": NEW, "output": 1 },
+    { "controlState": SAME, "output": 1 },
+    { "controlState": NEW, "output": 2 },
     {
-      "controlState": "error",
-      "output": `subsequentPullFromFn > ${ERROR_WHEN_EXECUTING_ITERABLE_GENERATING_FUNCTION} : ${ERROR}`
+      "controlState": ERROR,
+      "output": `subsequentPullFromFn > ${ERROR_WHEN_EXECUTING_ITERABLE_GENERATING_FUNCTION} : ${ERROR_MESSAGE}`
     },
     {
-      "controlState": "error",
-      "output": `subsequentPullFromFn > ${ERROR_WHEN_EXECUTING_ITERABLE_GENERATING_FUNCTION} : ${ERROR}`
+      "controlState": ERROR,
+      "output": `subsequentPullFromFn > ${ERROR_WHEN_EXECUTING_ITERABLE_GENERATING_FUNCTION} : ${ERROR_MESSAGE}`
     },
     {
-      "controlState": "error",
-      "output": `subsequentPullFromFn > ${ERROR_WHEN_EXECUTING_ITERABLE_GENERATING_FUNCTION} : ${ERROR}`
+      "controlState": ERROR,
+      "output": `subsequentPullFromFn > ${ERROR_WHEN_EXECUTING_ITERABLE_GENERATING_FUNCTION} : ${ERROR_MESSAGE}`
     },
     {
-      "controlState": "error",
-      "output": `subsequentPullFromFn > ${ERROR_WHEN_EXECUTING_ITERABLE_GENERATING_FUNCTION} : ${ERROR}`
+      "controlState": ERROR,
+      "output": `subsequentPullFromFn > ${ERROR_WHEN_EXECUTING_ITERABLE_GENERATING_FUNCTION} : ${ERROR_MESSAGE}`
     }
   ], `Iterator correctly generates value from generating function`);
 });
@@ -197,7 +200,6 @@ QUnit.test("From fn = x y y z err z z x", function exec_test(assert) {
 //   - {controlState : DONE, output : NO_OUTPUT}
 // ...
 QUnit.test("From fn = x y y z done z z x", function exec_test(assert) {
-  const DONE = 'done';
   const fn = makeEventuallyDoneFn(0, DONE);
   const iterator = fromFn(fn, { done: DONE });
 
@@ -209,13 +211,13 @@ QUnit.test("From fn = x y y z done z z x", function exec_test(assert) {
   }, []);
 
   assert.deepEqual(sequence, [
-    { "controlState": "new", "output": 0 },
-    { "controlState": "new", "output": 1 },
-    { "controlState": "same", "output": 1 },
-    { "controlState": "new", "output": 2 },
-    { "controlState": "done", "output": null },
-    { "controlState": "done", "output": null },
-    { "controlState": "done", "output": null },
-    { "controlState": "done", "output": null }
+    { "controlState": NEW, "output": 0 },
+    { "controlState": NEW, "output": 1 },
+    { "controlState": SAME, "output": 1 },
+    { "controlState": NEW, "output": 2 },
+    { "controlState": DONE, "output": null },
+    { "controlState": DONE, "output": null },
+    { "controlState": DONE, "output": null },
+    { "controlState": DONE, "output": null }
   ], `Iterator correctly generates value from generating function`);
 });

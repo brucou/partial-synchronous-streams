@@ -102,7 +102,6 @@ export function fromFn(fn, settings) {
   }
 }
 
-// NOTE: this is the same code for all fromXXX, just the automaton changing
 export function fromBehavior(behavior, settings) {
   const automaton = create_state_machine(syncDataflowCreateFromBehaviorAutomaton, { ...settings });
   let _value = automaton.start();
@@ -126,7 +125,7 @@ export function fromBehavior(behavior, settings) {
   }
 }
 
-function map(sdf, fn) {
+export function map(pss, fn) {
   let cachedValue = null
 
   return {
@@ -134,8 +133,8 @@ function map(sdf, fn) {
       return cachedValue
     },
     pull: function () {
-      sdf.pull()
-      const { controlState, output } = sdf.get();
+      pss.pull()
+      const { controlState, output } = pss.get();
 
       // TODO : add case where output == NO_OUTPUT!! must be mapped to NO_OUTPUT
       // TODO : map should return also {controlState, output} !! so no good here (imagine two maps)
@@ -145,19 +144,25 @@ function map(sdf, fn) {
           // could happen for instance with fromFn, when one does a get before a pull (!! dont
           // do that!!) In such pathologica case, we just silently output nothing
           // TODO : put in doc
-          cachedValue = NO_OUTPUT;
+          cachedValue = { controlState, output : NO_OUTPUT};
           break;
         case NEW :
-          cachedValue = equals(output, NO_OUTPUT) ? NO_OUTPUT : fn(output);
+          cachedValue = {
+            controlState,
+            output : equals(output, NO_OUTPUT) ? NO_OUTPUT : fn(output)
+          }
           break;
         case SAME :
-          // Do nothing, fn(value) is already in cache
+          cachedValue = {
+            controlState : SAME,
+            output : cachedValue.output
+          }
           break;
         case ERROR :
-          cachedValue = output
+          cachedValue = { controlState, output }
           break;
         case DONE :
-          cachedValue = output
+          cachedValue = { controlState, output }
           break;
       }
     }
