@@ -201,3 +201,5 @@ The following signature applies :
 
 - `combine :: (... -> T)-> [Iterator] -> Iterator`
 
+# References
+[Uustalu T., Vene V. (2006) The Essence of Dataflow Programming.](https://link.springer.com/chapter/10.1007/11894100_5)
