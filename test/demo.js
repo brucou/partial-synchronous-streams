@@ -48,8 +48,12 @@ function step(timestamp) {
   if (!start) start = timestamp;
   const progress = timestamp - start;
   displayedDOM.pull();
-  acc.push(displayedDOM.get().controlState);
-  element.innerHTML = displayedDOM.get().output + `<br>${acc.join('<br>')}`;
+  const controlState = displayedDOM.get().controlState;
+  acc.push(controlState);
+  // If there is no changes in the displayed message, no need to do anything
+  if (controlState !== SAME) {
+    element.innerHTML = displayedDOM.get().output + `<br>${acc.join('<br>')}`
+  }
 
   if (progress < 3000) {
     window.requestAnimationFrame(step);
