@@ -2,6 +2,7 @@ import * as QUnit from "qunitjs"
 import { fromFn, map as mapS } from "../src/partial_synchronous_streams"
 import { STATES } from "../src/properties"
 import { ERROR_WHEN_EXECUTING_ITERABLE_GENERATING_FUNCTION } from "../src/fromFnAutomaton"
+import { NO_OUTPUT } from "../src/synchronous_fsm"
 
 const { NEW, SAME, ERROR, DONE } = STATES;
 
@@ -110,9 +111,9 @@ QUnit.test("map, with fromFn = x y y z done z z x", function exec_test(assert) {
     { "controlState": NEW, "output": { "mapped": 1 } },
     { "controlState": SAME, "output": { "mapped": 1 } },
     { "controlState": NEW, "output": { "mapped": 2 } },
-    { "controlState": DONE, "output": null },
-    { "controlState": DONE, "output": null },
-    { "controlState": DONE, "output": null },
-    { "controlState": DONE, "output": null }
+    { "controlState": DONE, "output": NO_OUTPUT },
+    { "controlState": DONE, "output": NO_OUTPUT },
+    { "controlState": DONE, "output": NO_OUTPUT },
+    { "controlState": DONE, "output": NO_OUTPUT }
   ], `Map operator correctly map values from source iterator`);
 });

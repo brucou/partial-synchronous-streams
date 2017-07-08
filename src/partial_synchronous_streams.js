@@ -132,6 +132,7 @@ export function fromBehavior(behavior, settings) {
 }
 
 export function map(pss, fn) {
+  // NOTE : pss stands for partial synchronous streams
   let cachedValue = null;
 
   return {
@@ -180,7 +181,7 @@ function hasOneWitnError(iteratorsOutput) {
   return iteratorsOutput.some(outputStruct => outputStruct.controlState === ERROR)
 }
 
-function hasOneWitnDone(iteratorsOutput) {
+function hasOneWithDone(iteratorsOutput) {
   return iteratorsOutput.some(outputStruct => outputStruct.controlState === DONE)
 }
 
@@ -194,6 +195,16 @@ function hasOneWitnNoOutput(iteratorsOutput) {
 
 function hasAllSame(iteratorsOutput) {
   return iteratorsOutput.every(outputStruct => outputStruct.controlState === SAME)
+}
+
+function aggregateIteratorsError(iteratorsOutput){
+  return iteratorsOutput.reduce((accErrors, {controlState, output}) => {
+    if (controlState === ERROR) {
+      accErrors.push(output)
+    }
+
+    return accErrors
+  },[]).join('\n')
 }
 
 export function combine(combiningFn, arrayOfIterators) {
@@ -212,10 +223,10 @@ export function combine(combiningFn, arrayOfIterators) {
 
       if (hasOneWitnError(iteratorsOutput)) {
         // Concatenate all errors with their indices
-        cachedValue = {controlState : ERROR, ouput : aggregateIteratorsError(iteratorsOutput)};
+        cachedValue = {controlState : ERROR, output : aggregateIteratorsError(iteratorsOutput)};
       }
-      else if (hasOneWitnDone(iteratorsOutput)) {
-        cachedValue = {controlState : DONE, ouput : NO_OUTPUT};
+      else if (hasOneWithDone(iteratorsOutput)) {
+        cachedValue = {controlState : DONE, output : NO_OUTPUT};
       }
       else if (hasOneWitnNoOutput(iteratorsOutput)) {
         // NOTE : I could also memoize the aggregatedCcontrolState and return SAME for second pull

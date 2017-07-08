@@ -2,6 +2,7 @@ import * as QUnit from "qunitjs"
 import { fromFn } from "../src/partial_synchronous_streams"
 import { ERROR_WHEN_EXECUTING_ITERABLE_GENERATING_FUNCTION } from "../src/fromFnAutomaton"
 import { STATES } from "../src/properties"
+import { NO_OUTPUT } from "../src/synchronous_fsm"
 
 const { NEW, SAME, ERROR, DONE } = STATES;
 
@@ -215,9 +216,9 @@ QUnit.test("From fn = x y y z done z z x", function exec_test(assert) {
     { "controlState": NEW, "output": 1 },
     { "controlState": SAME, "output": 1 },
     { "controlState": NEW, "output": 2 },
-    { "controlState": DONE, "output": null },
-    { "controlState": DONE, "output": null },
-    { "controlState": DONE, "output": null },
-    { "controlState": DONE, "output": null }
+    { "controlState": DONE, "output": NO_OUTPUT },
+    { "controlState": DONE, "output": NO_OUTPUT },
+    { "controlState": DONE, "output": NO_OUTPUT },
+    { "controlState": DONE, "output": NO_OUTPUT }
   ], `Iterator correctly generates value from generating function`);
 });
