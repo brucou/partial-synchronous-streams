@@ -1,4 +1,5 @@
 // TODO : the latest version of synchronous_fsm should go back to rx-component-combinators!!
+// TODO : document code with jsdoc, in particular @modify tags for side-effectful functions
 
 // TODO : entry and exit actions??
 // TODO : Add termination connector (T)?
@@ -270,7 +271,6 @@ function build_state_enum(states) {
  * @param settings
  * @returns {{yield : Function, start: Function}}
  */
-// TODO : add NO_OUTPUT in settings
 function create_state_machine(fsmDef, settings) {
   const { control_states, events, transitions, model_initial } = fsmDef;
   const event_emitter_factory = ('event_emitter_factory' in settings)
@@ -420,14 +420,8 @@ function create_state_machine(fsmDef, settings) {
       // CASE : There is a transition associated to that event
       console.log("found event handler!");
       console.info("WHEN EVENT ", event);
-      // TODO : adapt that : we want the output of the event_handler
       /* OUT : this event handler modifies the model and possibly other data structures */
       const output = event_handler(model, event_data, current_state).output;
-      // send the AUTO event to trigger transitions which are automatic
-      // i.e. transitions without events
-      // event_handler(model, special_events.AUTO);
-      // TODO : make sure that returns something
-      // TODO : the logic here is that if there is no automatic events, return output
 
       // we read it anew as the execution of the event handler may have changed it
       const current_state = hash_states[INITIAL_STATE_NAME].current_state_name;
@@ -441,6 +435,7 @@ function create_state_machine(fsmDef, settings) {
       // states) In this case, there is no need for event data
       if (is_auto_state[current_state]) {
         // CASE : transient state with no triggering event, just conditions
+        // automatic transitions = transitions without events
         const auto_event = is_init_state[current_state] ? INIT_EVENT : AUTO_EVENT;
         return send_event({ [AUTO_EVENT]: event_data });
       }

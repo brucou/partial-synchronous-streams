@@ -151,7 +151,6 @@ export function fromBehavior(behavior, settings) {
         case INIT :
           // could happen for instance with fromFn, when one does a get before a pull (!! dont
           // do that!!) In such pathological case, we just silently output nothing
-          // TODO : put in doc
           cachedValue = { controlState, output: NO_OUTPUT };
           break;
         case NEW :

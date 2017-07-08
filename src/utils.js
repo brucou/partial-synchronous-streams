@@ -5,8 +5,6 @@ import {
   values, where
 } from "ramda"
 import * as Rx from "rx"
-// TODO https://github.com/moll/js-standard-error
-// TODO : define custom error types
 import toHTML from "snabbdom-to-html"
 import { StandardError } from "standard-error"
 import formatObj from "fmt-obj"
