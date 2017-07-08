@@ -114,6 +114,11 @@ const displayedDOM = combine((screenType, username) => {
 }, [screenType, username]);
 ```
 
+| First Header  | Second Header |
+| ------------- | ------------- |
+| Content Cell  | Content Cell  |
+| Content Cell  | Content Cell  |
+
 # API
 ## Constructors
 ### fromBehavior(behavior, settings)
