@@ -141,7 +141,7 @@ function isSameValue(model, eventData, settings) {
 
 function isDoneValue(model, eventData, settings) {
   // NOTE : comparison is made by reference - this is to reduce the chances of accidentally
-  // having a
+  // having a false match
   if ('done' in settings) return model.value == settings.done
   return false
 }

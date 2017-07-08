@@ -14,7 +14,7 @@ const initialValue = {
 export const syncDataflowCreateFromBehaviorAutomaton = {
   control_states: { [INIT]: '', [NEW]: '', [SAME]: '', [ERROR]: '', [DONE]: '', [TEMP]: '' },
   events: [PULL_EVENT, NEW_EVENT, ERROR_EVENT, DONE_EVENT],
-  // TODO : refactor to a hierarchical state machine!! that waw I test it also
+  // TODO : refactor to a hierarchical state machine!! that way I test it also
   transitions: [
     // initial transition on start
     { from: INITIAL_STATE_NAME, to: INIT, event: INIT_EVENT, action: init },

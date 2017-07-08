@@ -201,5 +201,8 @@ The following signature applies :
 
 - `combine :: (... -> T)-> [Iterator] -> Iterator`
 
+## Gotchas
+- don't do a `get` on an iterator before doing a `pull`. The output in those cases is unspecified.
+
 # References
 [Uustalu T., Vene V. (2006) The Essence of Dataflow Programming.](https://link.springer.com/chapter/10.1007/11894100_5)

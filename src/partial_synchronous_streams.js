@@ -250,8 +250,4 @@ export function combine(combiningFn, arrayOfIterators) {
   }
 }
 
-// TODO : put NO_OUTPUT in settings, put DONE_OUTPUT in settings as well and in synchronous fsm
-// as well
-// Note that this will go as settigns to the state machine cf. fromFn(.. setings)
-// done can be used at guard and action levels, no_output used outside of the fsm
-// TODO  : do combine. and then demo
+// TODO : put NO_OUTPUT in settings,

@@ -1,47 +1,31 @@
-// TODO: refactor away from require
-// TODO : var -> let or const
-// DONE : send_event -> yield {[evname]: evdata}
-// TODO : write test for syncFSM.js
-// TODO : write a documentation as I get to understand again how it works
-// TODO : group the parameters of create_fsm into a autmaton parameter, and a settigns
-// parameters which has the event emitter factory
-// all actions function and guards must have access to the settings parameters - used to pass
-// dependencies and fixed environment data
-// TODO : change output so that the value returned is {controlState, output}
-// TODO : change signature  I dont need event emitter... this is synchronous
-// TODO : add a settings option autostart to start automatically on creation
 // TODO : the latest version of synchronous_fsm should go back to rx-component-combinators!!
 
-// TODO : TEST CASE no history (last seen state is null...)
-// TODO : add the view (template + enabling disabling of buttons in function of state)
-// TODO : add the tooltips
-// TODO : add the possibility to add conditions one by one on a given transition
 // TODO : entry and exit actions??
-//{from: states.cd_loaded_group, to: states.cd_stopped, event: cd_player_events.NEXT_TRACK,
-// condition: is_last_track, action: stop}, {from: states.cd_loaded_group, to:
-// states.history.cd_loaded_group, event: cd_player_events.NEXT_TRACK, condition:
-// is_not_last_track, action: go_next_track}, //vs. {from: states.cd_loaded_group, to:
-// states.cd_stopped, event: cd_player_events.NEXT_TRACK, conditions: [ //      {condition:
-// is_last_track, to: states.cd_stopped, action: stop}, //      {condition: is_not_last_track, to:
-// states.history.cd_loaded_group, action: go_next_track} //    ]}, TODO : Add termination
-// connector (T)? TODO : test all cases (review code) - for instance action depending on condition
-// TODO : abstract the tree traversal for the build states part TODO : externalize action with
-// possibility to wait for values or move on TODO : DSL TODO : write program which takes a
-// transition specifications and draw a nice graph out of it with yed or else TODO : think about
-// the concurrent states (AND states)
+// TODO : Add termination connector (T)?
+// TODO : test all cases (review code) - for instance action depending on condition
+// TODO : abstract the tree traversal for the build states part
+// TODO : externalize action with possibility to wait for values or move on
+// TODO : DSL TODO : write program which takes a transition specifications and draw a nice graph
+// out of it with yed or else
+// TODO : think about the concurrent states (AND states)
+// TODO : cd player demo
+// - TEST CASE no history (last seen state is null...)
+// - add the view (template + enabling disabling of buttons in function of state)
+// - add the tooltips
 
 
 // CONTRACT : no transition from the history state (history state is only a target state)
 // CONTRACT : init events only acceptable in nesting state (aka grouping state)
 // NOTE : enforced via in_auto_state only true for grouping state
 // CONTRACT : Automatic actions with no events and only conditions are not allowed in nesting state
-// (aka grouping state) NOTE : That would lead to non-determinism if A < B < C and both A and B
-// have such automatic actions CONTRACT : There MUST be an action in each transition NOTE : Dead
-// states: - Possible if automatic actions (no events) with conditions always true. If there is not
-// another condition which at some point is set to false, we have an infinite loop (a very real one
-// which could monopolize the CPU if all actions are synchronous) - To break out of it, maybe put a
-// guard that if we remain in the same state for X steps, transition automatically (to error or
-// else)
+// (aka grouping state)
+// NOTE : That would lead to non-determinism if A < B < C and both A and B
+// have such automatic actions CONTRACT : There MUST be an action in each transition
+// NOTE : Dead states: - Possible if automatic actions (no events) with conditions always true.
+// If there is not another condition which at some point is set to false, we have an infinite
+// loop (a very real one which could monopolize the CPU if all actions are synchronous) - To
+// break out of it, maybe put a guard that if we remain in the same state for X steps,
+// transition automatically (to error or else)
 
 import * as Rx from "rx"
 import { always, clone, keys } from "ramda"
