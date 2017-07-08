@@ -11,8 +11,8 @@
   ],
   "scripts": {
     "serve": "nodemon index.js --exec babel-node",
-    "start": "babel-node index.js",
-    "build": "babel-node build.js",
+    "start": "watchify -d --transform babelify dist-node -o src/bundle.js -v",
+    "build": "babel src --source-maps --out-dir dist-node",
     "build-node-test": "babel test --source-maps --out-dir dist-node-test",
     "clean-test": "rimraf dist-node-test && mkdirp dist-node-test",
     "test": "watchify -d --transform babelify dist-node-test -o test/test-bundle.js -v"
