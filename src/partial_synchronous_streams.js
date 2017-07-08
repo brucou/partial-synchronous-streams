@@ -131,7 +131,7 @@ export function fromBehavior(behavior, settings) {
   }
 }
 
-export function map(pss, fn) {
+  export function map(pss, fn) {
   // NOTE : pss stands for partial synchronous streams
   let cachedValue = null;
 
