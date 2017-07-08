@@ -9,8 +9,8 @@ We introduce here a library for manipulating what we call partial synchronous pu
 
 Such streams can be denoted as usual by $(x_i)_{i\in\mathbb{N}}$. Here follows some examples of partial streams, and some operations which can be defined on them :
 
-| Partial stream |  |  |  |  |  |  | 
-| -- | -- | -- | -- | -- | -- | -- | -- 
+| Partial stream |   |  |  |  |  |  | 
+| --- | --- | --- | --- | --- | --- | --- |  
 | nosig | -- | -- | -- | -- | -- | -- | -- | -- |
 | x       | $x_0$|  -- | -- | $x_3$ | -- | -- | -- |
 | y       | -- |  -- | $y_2$ | $y_3$ | -- | $y_5$ | -- |
@@ -20,8 +20,9 @@ Such streams can be denoted as usual by $(x_i)_{i\in\mathbb{N}}$. Here follows s
 Note that `--` denotes the zero value of the partial stream.
 
 Partial streams naturally include total streams. Here follow similar examples :
+
 | Total stream |  |  |  |  |  |  | 
-| -- | -- | -- | -- | -- | -- | -- | -- 
+| --- | --- | --- | --- | --- | --- | --- |
 | x       | $x_0$|  $x_1$ | $x_2$ | $x_3$ | $x_4$ | $x_5$ 
 | y       | $y_0$|  $y_1$ | $y_2$ | $y_3$ | $y_4$ | $y_5$ 
 | x fby y | $x_0$ |  $y_1$ | $y_2$ | $y_3$ | $y_4$ | $y_5$ 
@@ -39,7 +40,7 @@ fibo = 0 fby (fibo + (1 fby fibo))
 ```
 
 | Total stream |  |  |  |  |  |  | 
-| -- | -- | -- | -- | -- | -- | -- | -- 
+| --- | --- | --- | --- | --- | --- | --- |
 | pos       | 0 |1 | 2 | 3 | 4 | 5 
 | sum pos   | 0 |1 | 3 | 6 | 10 | 15 
 | diff pos   | 0 |1 | 1 | 1 | 1 | 1
@@ -113,11 +114,6 @@ const displayedDOM = combine((screenType, username) => {
   `
 }, [screenType, username]);
 ```
-
-| First Header  | Second Header |
-| ------------- | ------------- |
-| Content Cell  | Content Cell  |
-| Content Cell  | Content Cell  |
 
 # API
 ## Constructors
