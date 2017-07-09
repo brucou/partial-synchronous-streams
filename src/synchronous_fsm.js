@@ -1,11 +1,9 @@
 // TODO : the latest version of synchronous_fsm should go back to rx-component-combinators!!
 // TODO : document code with jsdoc, in particular @modify tags for side-effectful functions
+// TODO : document the library
 
 // TODO : entry and exit actions??
 // TODO : Add termination connector (T)?
-// TODO : test all cases (review code) - for instance action depending on condition
-// TODO : abstract the tree traversal for the build states part
-// TODO : externalize action with possibility to wait for values or move on
 // TODO : DSL TODO : write program which takes a transition specifications and draw a nice graph
 // out of it with yed or else
 // TODO : think about the concurrent states (AND states)
@@ -519,7 +517,6 @@ function create_state_machine(fsmDef, settings) {
   return {
     yield: send_event,
     start: start,
-//    new_model_event_emitter: new_model_event_emitter
   }
 }
 
