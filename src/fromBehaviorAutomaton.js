@@ -1,7 +1,6 @@
 import { INIT_EVENT, INITIAL_STATE_NAME, NO_OUTPUT } from "./synchronous_fsm"
-import { equals, tryCatch } from "ramda"
+import { DONE_EVENT, ERROR_EVENT, NEW_EVENT, PULL_EVENT, STATES } from './properties'
 import { toJsonPatch } from "./utils"
-import {STATES, PULL_EVENT, NEW_EVENT, ERROR_EVENT, DONE_EVENT} from './properties'
 
 const { INIT, NEW, SAME, ERROR, DONE, TEMP } = STATES;
 const initialValue = {
@@ -70,52 +69,52 @@ function repeatError(model, eventData, settings) {
   }
 }
 
-function setSamePullOutput (model, eventData, settings) {
+function setSamePullOutput(model, eventData, settings) {
   return {
     model_update: [],
     output: {
-      controlState : SAME,
-      output : model.value
+      controlState: SAME,
+      output: model.value
     }
   }
 }
 
-function setNewPullOutput (model, eventData, settings) {
+function setNewPullOutput(model, eventData, settings) {
   return {
     model_update: [],
     output: {
-      controlState : NEW,
-      output : model.value
+      controlState: NEW,
+      output: model.value
     }
   }
 }
 
-function updateWithError (model, eventData, settings) {
+function updateWithError(model, eventData, settings) {
   return {
     model_update: toJsonPatch('')({
-      value : null,
+      value: null,
       error: eventData
     }),
     output: []
   }
 }
 
-function updateWithDone (model, eventData, settings) {
+function updateWithDone(model, eventData, settings) {
   return {
     model_update: toJsonPatch('')({
       controlState: DONE,
-      value : null,
+      value: null,
       error: null
     }),
     output: NO_OUTPUT
   }
 }
 
-function updateWithNewValue (model, eventData, settings) {
+function updateWithNewValue(model, eventData, settings) {
   return {
     model_update: toJsonPatch('')({
       controlState: NEW,
-      value : eventData,
+      value: eventData,
       error: null
     }),
     output: NO_OUTPUT
