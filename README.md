@@ -1,5 +1,5 @@
 # Description
-We introduce here a library for manipulating what we call partial synchronous pull streams. Such as streams, are characterized by :
+We introduce here a library for manipulating what we call partial synchronous pull streams. Such streams, are characterized by :
 
 - having an infinitely countable sequence of values
 - which are ordered
