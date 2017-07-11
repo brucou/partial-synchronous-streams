@@ -9,8 +9,8 @@ We introduce here a library for manipulating what we call partial synchronous pu
 
 Such streams can be denoted as usual by $(x_i)_{i\in\mathbb{N}}$. Here follows some examples of partial streams, and some operations which can be defined on them :
 
-| Partial stream |   |  |  |  |  |  | 
-| --- | --- | --- | --- | --- | --- | --- |  
+| Partial stream |   |  |  |  |  |  |
+| --- | --- | --- | --- | --- | --- | --- |
 | nosig | -- | -- | -- | -- | -- | -- | -- | -- |
 | x       | $x_0$|  -- | -- | $x_3$ | -- | -- | -- |
 | y       | -- |  -- | $y_2$ | $y_3$ | -- | $y_5$ | -- |
@@ -21,11 +21,11 @@ Note that `--` denotes the zero value of the partial stream.
 
 Partial streams naturally include total streams. Here follow similar examples :
 
-| Total stream |  |  |  |  |  |  | 
+| Total stream |  |  |  |  |  |  |
 | --- | --- | --- | --- | --- | --- | --- |
-| x       | $x_0$|  $x_1$ | $x_2$ | $x_3$ | $x_4$ | $x_5$ 
-| y       | $y_0$|  $y_1$ | $y_2$ | $y_3$ | $y_4$ | $y_5$ 
-| x fby y | $x_0$ |  $y_1$ | $y_2$ | $y_3$ | $y_4$ | $y_5$ 
+| x       | $x_0$|  $x_1$ | $x_2$ | $x_3$ | $x_4$ | $x_5$
+| y       | $y_0$|  $y_1$ | $y_2$ | $y_3$ | $y_4$ | $y_5$
+| x fby y | $x_0$ |  $y_1$ | $y_2$ | $y_3$ | $y_4$ | $y_5$
 | next x | $x_1$ | $x_2$ | $x_3$ | $x_4$ | $x_5$ | $x_6$
 
 With the `fby` operator (followed-by) , one can write many useful recursive definitions where the recursive calls are guarded by `fby` and there is no real circularity. Below are some classic examples of such feedback through a delay.
@@ -39,10 +39,10 @@ fact = 1 fby (fact * (pos + 1))
 fibo = 0 fby (fibo + (1 fby fibo))
 ```
 
-| Total stream |  |  |  |  |  |  | 
+| Total stream |  |  |  |  |  |  |
 | --- | --- | --- | --- | --- | --- | --- |
-| pos       | 0 |1 | 2 | 3 | 4 | 5 
-| sum pos   | 0 |1 | 3 | 6 | 10 | 15 
+| pos       | 0 |1 | 2 | 3 | 4 | 5
+| sum pos   | 0 |1 | 3 | 6 | 10 | 15
 | diff pos   | 0 |1 | 1 | 1 | 1 | 1
 | ini pos   | 0 | 0 | 0 | 0 | 0 | 0
 | fact   | 1 | 1 | 2 | 6 | 24 | 120
@@ -79,10 +79,10 @@ The computation of the view displayed in the DOM is as follows :
  - from those two entities, the message to be displayed on screen is computed
 
 Legend
-:    orange boxes : synchronous pull streams 
+:    orange boxes : synchronous pull streams
 :    yellow boxed : (reactive) events or behaviors
 
-The corresponding implementation using the library would go as follows : 
+The corresponding implementation using the library would go as follows :
 
 ```javascript
 function getWindowHeight() {return window.innerHeight}
@@ -105,7 +105,7 @@ const username$ = Rx.Observable.fromEvent(document.body, 'keypress')
   .map(evt => evt.keyCode || evt.which)
   .scan(...); // accumulate the pressed keys
   .startWith('');
-  
+
 const username = fromBehavior(username$);
 const displayedDOM = combine((screenType, username) => {
   return `
@@ -113,6 +113,29 @@ const displayedDOM = combine((screenType, username) => {
   user name : ${username}<br>
   `
 }, [screenType, username]);
+```
+
+The displaying could be handled like this :
+
+```
+function step(timestamp) {
+  if (!start) start = timestamp;
+  const progress = timestamp - start;
+
+  displayedDOM.pull();
+  const controlState = displayedDOM.get().controlState;
+  // If there is no changes in the displayed message, no need to do anything
+  if (controlState === NEW) {
+    console.log('updating DOM');
+    element.innerHTML = displayedDOM.get().output;
+  }
+
+  if (progress < 5000) {// silly conditions to stop at some point (5s)
+    window.requestAnimationFrame(step);
+  }
+}
+
+window.requestAnimationFrame(step);
 ```
 
 # API
@@ -136,22 +159,22 @@ The following signature applies :
 
 - `fromFn :: ( () -> T ) -> Nullable Settings -> Iterator`
 
-where : 
+where :
 
 - `Settings :: Record {`
 - `  fn :: () -> T`  *(mandatory)*
-- `  done :: String`  
-- `  equals :: T -> T -> Boolean`  
+- `  done :: String`
+- `  equals :: T -> T -> Boolean`
 - `}`
 
 - `Iterator :: Record {`
-- `  get :: () -> IteratorOutput`  
-- `  pull :: () -> ()`  
+- `  get :: () -> IteratorOutput`
+- `  pull :: () -> ()`
 - `}`
 
 - `IteratorOutput :: Record {`
-- `  controlState :: STATES`  
-- `  output :: T`  
+- `  controlState :: STATES`
+- `  output :: T`
 - `}`
 
 - `STATES :: NEW | SAME  | DONE | ERROR `
@@ -201,8 +224,15 @@ The following signature applies :
 
 - `combine :: (... -> T)-> [Iterator] -> Iterator`
 
-## Gotchas
-- don't do a `get` on an iterator before doing a `pull`. The output in those cases is unspecified.
+# Tests
+Tests are in the test directory, and are run in the browser with QUnit.
+
+```
+npm run build node test
+npm run test
+```
+
+then open `test-index.html` in your favorite local webserver.
 
 # References
 [Uustalu T., Vene V. (2006) The Essence of Dataflow Programming.](https://link.springer.com/chapter/10.1007/11894100_5)
