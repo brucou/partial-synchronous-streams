@@ -52,7 +52,7 @@ Partial streams are used in synchronous dataflow languages such as Lustre or Luc
 
 In the present library, streams are not extensionally constructed (which is impossible as the stream is countably infinite), but intensionally constructed, via the computational properties that they satisfy. A series of constructors will be presented in the remainder of the document.
 
-The present library additionally enhance the partial streams with the following characteristics :
+The present library additionally enhances the partial streams with the following characteristics :
 - stateful ability to cache previous computation
 - using that cache to minimize the computational effort for deciding the next value
 
@@ -115,7 +115,7 @@ const displayedDOM = combine((screenType, username) => {
 }, [screenType, username]);
 ```
 
-The displaying could be handled like this :
+The displaying, relying on `RequestAnimationFrame` sampling, could be handled like this :
 
 ```
 function step(timestamp) {
